@@ -75,8 +75,11 @@ class SSD(nn.Module):
             size_cfg = cfg.BIG
         self.num_classes = cfg.MODEL.NUM_CLASSES
         self.prior_layer = PriorLayer(cfg)
-        self.priorbox = PriorBox(cfg)
-        self.priors = self.priorbox.forward()
+        # self.priorbox = PriorBox(cfg)
+        # self.priors = self.priorbox.forward()
+        # generate the priorboxes in the initialization phase
+        self.priorboxes = [prior_layer((self.size, self.size), feature_maps_wh) 
+                            for feature_maps_wh in cfg.size_cfg.FEATURE_MAPS]
         self.extractor = get_func(cfg.MODEL.CONV_BODY)(self.size,
                                                        cfg.TRAIN.CHANNEL_SIZE)
         if cfg.MODEL.REFINE:
@@ -150,28 +153,35 @@ class SSD(nn.Module):
             for (x, l, c) in zip(odm_xs, self.odm_loc, self.odm_conf):
                 odm_loc.append(l(x).permute(0, 2, 3, 1).contiguous())
                 odm_conf.append(c(x).permute(0, 2, 3, 1).contiguous())
-            odm_loc = torch.cat([o.view(o.size(0), -1) for o in odm_loc], 1)
-            odm_conf = torch.cat([o.view(o.size(0), -1) for o in odm_conf], 1)
+            odm_loc  = [o.view(o.size(0), -1) for o in odm_loc]
+            odm_conf = [o.view(o.size(0), -1) for o in odm_conf]
         else:
             arm_xs = self.extractor(x)
         img_wh = (x.size(3), x.size(2))
-        feature_maps_wh = [(t.size(3), t.size(2)) for t in arm_xs]
+        feature_maps_whs = [(t.size(3), t.size(2)) for t in arm_xs]
         for (x, l, c) in zip(arm_xs, self.arm_loc, self.arm_conf):
             arm_loc.append(l(x).permute(0, 2, 3, 1).contiguous())
             arm_conf.append(c(x).permute(0, 2, 3, 1).contiguous())
-        arm_loc = torch.cat([o.view(o.size(0), -1) for o in arm_loc], 1)
-        arm_conf = torch.cat([o.view(o.size(0), -1) for o in arm_conf], 1)
+        arm_loc  = [o.view(o.size(0), -1) for o in arm_loc]
+        arm_conf = [o.view(o.size(0), -1) for o in arm_conf]
+        # only support fixed featuremap
         if self.cfg.MODEL.REFINE:
-            output = (arm_loc.view(arm_loc.size(0), -1, 4),
-                      arm_conf.view(
-                          arm_conf.size(0), -1, self.arm_num_classes),
+            # output = [(arm_loc.view(arm_loc.size(0), -1, 4), 
+            #           arm_conf.view(arm_conf.size(0), -1, self.num_classes),
+            #           odm_loc.view(odm_loc.size(0), -1, 4),
+            #           odm_conf.view(odm_conf.size(0), -1, self.num_classes),
+            #           prior_layer(img_wh, [feature_maps_wh]))
+            #           for (arm_conf, arm_loc, feature_maps_wh) in zip(arm_confs, arm_locs, feature_maps_whs)]
+            output = [(arm_loc.view(arm_loc.size(0), -1, 4), 
+                      arm_conf.view(arm_conf.size(0), -1, self.num_classes),
                       odm_loc.view(odm_loc.size(0), -1, 4),
                       odm_conf.view(odm_conf.size(0), -1, self.num_classes),
-                      self.priors if self.input_fixed else self.prior_layer(
-                          img_wh, feature_maps_wh))
+                      priorbox)
+                      for (arm_conf, arm_loc, priorbox) in zip(arm_confs, arm_locs, self.priorboxes)]                      
         else:
-            output = (arm_loc.view(arm_loc.size(0), -1, 4),
+            output = [(arm_loc.view(arm_loc.size(0), -1, 4), 
                       arm_conf.view(arm_conf.size(0), -1, self.num_classes),
-                      self.priors if self.input_fixed else self.prior_layer(
-                          img_wh, feature_maps_wh))
+                      priorbox)
+                      for (arm_conf, arm_loc, priorbox) in zip(arm_confs, arm_locs, self.priorboxes)] 
+        # for ssh multi-branch, we generate [Branches] Output, which is loc, conf[batch, priors, x]
         return output

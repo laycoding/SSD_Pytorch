@@ -95,19 +95,23 @@ def train(train_loader, net, criterion, optimizer, epoch, epoch_step, gamma,
         imgs.requires_grad_()
         with torch.no_grad():
             targets = [anno.cuda() for anno in targets]
-        output = net(imgs)
+        outputs = net(imgs)
         optimizer.zero_grad()
+        loss = torch.zeros(1).cuda()
         if not cfg.MODEL.REFINE:
             ssd_criterion = criterion[0]
-            loss_l, loss_c = ssd_criterion(output, targets)
-            loss = loss_l + loss_c
+            for i, output in enumerate(outputs):
+                loss_l, loss_c = ssd_criterion(output, targets)
+                loss += loss_l + loss_c
         else:
             arm_criterion = criterion[0]
-            odm_criterion = criterion[1]
-            arm_loss_l, arm_loss_c = arm_criterion(output, targets)
-            odm_loss_l, odm_loss_c = odm_criterion(
-                output, targets, use_arm=True, filter_object=True)
-            loss = arm_loss_l + arm_loss_c + odm_loss_l + odm_loss_c
+            odm_criterion = criterion[1]           
+            for i, output in enumerate(outputs):
+                arm_loss_l, arm_loss_c = arm_criterion(output, targets)
+                odm_loss_l, odm_loss_c = odm_criterion(
+                    output, targets, use_arm=True, filter_object=True)
+                loss += arm_loss_l + arm_loss_c + odm_loss_l + odm_loss_c
+
         loss.backward()
         optimizer.step()
         t1 = time.time()
