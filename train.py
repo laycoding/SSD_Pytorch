@@ -97,12 +97,15 @@ def train(train_loader, net, criterion, optimizer, epoch, epoch_step, gamma,
             targets = [anno.cuda() for anno in targets]
         outputs = net(imgs)
         optimizer.zero_grad()
-        loss = torch.zeros(1).cuda()
+        arm_loss_L, arm_loss_C = (0, 0)
+        odm_loss_L, odm_loss_C = (0, 0)
         if not cfg.MODEL.REFINE:
             ssd_criterion = criterion[0]
             for i, output in enumerate(outputs):
                 loss_l, loss_c = ssd_criterion(output, targets)
-                loss += loss_l + loss_c
+                arm_loss_L += loss_l
+                arm_loss_C += loss_c
+            loss = arm_loss_L + arm_loss_C
         else:
             arm_criterion = criterion[0]
             odm_criterion = criterion[1]           
@@ -110,8 +113,11 @@ def train(train_loader, net, criterion, optimizer, epoch, epoch_step, gamma,
                 arm_loss_l, arm_loss_c = arm_criterion(output, targets)
                 odm_loss_l, odm_loss_c = odm_criterion(
                     output, targets, use_arm=True, filter_object=True)
-                loss += arm_loss_l + arm_loss_c + odm_loss_l + odm_loss_c
-
+                arm_loss_L += arm_loss_l
+                arm_loss_C += arm_loss_c
+                odm_loss_L += odm_loss_l
+                odm_loss_C += odm_loss_c
+            loss = arm_loss_L + arm_loss_C + odm_loss_L + odm_loss_C
         loss.backward()
         optimizer.step()
         t1 = time.time()
@@ -124,16 +130,16 @@ def train(train_loader, net, criterion, optimizer, epoch, epoch_step, gamma,
                 print('Epoch:' + repr(epoch) + ' || epochiter: ' +
                       repr(iteration % epoch_size) + '/' + repr(epoch_size) +
                       ' || L: %.4f C: %.4f||' %
-                      (loss_l.item(), loss_c.item()) +
+                      (arm_loss_L.item(), arm_loss_C.item()) +
                       'iteration time: %.4f sec. ||' % (t1 - t0) +
                       'LR: %.5f' % (lr) + ' || eta time: {}'.format(eta))
             else:
                 print('Epoch:' + repr(epoch) + ' || epochiter: ' +
                       repr(iteration % epoch_size) + '/' + repr(epoch_size) +
                       '|| arm_L: %.4f arm_C: %.4f||' %
-                      (arm_loss_l.item(), arm_loss_c.item()) +
+                      (arm_loss_L.item(), arm_loss_C.item()) +
                       ' odm_L: %.4f odm_C: %.4f||' %
-                      (odm_loss_l.item(), odm_loss_c.item()) +
+                      (odm_loss_L.item(), odm_loss_C.item()) +
                       ' loss: %.4f||' % (loss.item()) +
                       'iteration time: %.4f sec. ||' % (t1 - t0) +
                       'LR: %.5f' % (lr) + ' || eta time: {}'.format(eta))

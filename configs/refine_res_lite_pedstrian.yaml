@@ -41,9 +41,9 @@ SOLVER:
   START_EPOCH: 0
 
 DATASETS:
-  TRAIN_TYPE: [['0712', '0712_trainval']]
-  VAL_TYPE: [['0712', '2007_test']]
-  DATAROOT: 'data/datasets/VOCdevkit0712/'
+  TRAIN_TYPE: [['2007', 'trainval'], ['2012', 'trainval']]
+  VAL_TYPE: [['2007', 'test']]
+  DATAROOT: 'data/datasets/VOCdevkit/'
   DATA_TYPE: 'VOC'
   SETS:
     VOC: [['0712', '0712_trainval']]

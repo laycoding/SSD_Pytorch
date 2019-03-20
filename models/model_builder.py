@@ -78,8 +78,9 @@ class SSD(nn.Module):
         # self.priorbox = PriorBox(cfg)
         # self.priors = self.priorbox.forward()
         # generate the priorboxes in the initialization phase
-        self.priorboxes = [prior_layer((self.size, self.size), feature_maps_wh) 
-                            for feature_maps_wh in cfg.size_cfg.FEATURE_MAPS]
+        self.insize = int(self.size)
+        self.priorboxes = [self.prior_layer((self.insize, self.insize), [feature_maps_wh]) 
+                            for feature_maps_wh in size_cfg.FEATURE_MAPS]
         self.extractor = get_func(cfg.MODEL.CONV_BODY)(self.size,
                                                        cfg.TRAIN.CHANNEL_SIZE)
         if cfg.MODEL.REFINE:
@@ -177,7 +178,7 @@ class SSD(nn.Module):
                       odm_loc.view(odm_loc.size(0), -1, 4),
                       odm_conf.view(odm_conf.size(0), -1, self.num_classes),
                       priorbox)
-                      for (arm_conf, arm_loc, priorbox) in zip(arm_confs, arm_locs, self.priorboxes)]                      
+                      for (arm_conf, arm_loc, odm_conf, odm_loc, priorbox) in zip(arm_conf, odm_loc, odm_conf, arm_loc, self.priorboxes)]                      
         else:
             output = [(arm_loc.view(arm_loc.size(0), -1, 4), 
                       arm_conf.view(arm_conf.size(0), -1, self.num_classes),
