@@ -79,8 +79,8 @@ class SSD(nn.Module):
         # self.priors = self.priorbox.forward()
         # generate the priorboxes in the initialization phase
         self.insize = int(self.size)
-        self.priorboxes = [self.prior_layer((self.insize, self.insize), [feature_maps_wh]) 
-                            for feature_maps_wh in size_cfg.FEATURE_MAPS]
+        self.priorboxes = [self.prior_layer((self.insize, self.insize), [feature_maps_wh], index) 
+                            for index, feature_maps_wh in enumerate(size_cfg.FEATURE_MAPS)]
         self.extractor = get_func(cfg.MODEL.CONV_BODY)(self.size,
                                                        cfg.TRAIN.CHANNEL_SIZE)
         if cfg.MODEL.REFINE:
