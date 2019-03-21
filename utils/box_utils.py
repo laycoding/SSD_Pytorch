@@ -189,7 +189,7 @@ def match(threshold, truths, priors, variances, labels, loc_t, conf_t, idx):
     best_truth_overlap.squeeze_(0)
     best_prior_idx.squeeze_(1)
     best_prior_overlap.squeeze_(1)
-    best_truth_overlap.index_fill_(0, best_prior_idx, 2)  # ensure best prior
+    # best_truth_overlap.index_fill_(0, best_prior_idx, 2)  # ensure best prior
     # import sys
     # sys.exit()
     # TODO refactor: index  best_prior_idx with long tensor
@@ -243,8 +243,15 @@ def refine_match(threshold,
     best_truth_overlap.squeeze_(0)
     best_prior_idx.squeeze_(1)
     best_prior_overlap.squeeze_(1)
+    # torch.save(best_truth_idx, "inters/best_truth_idx.pt")
+    # torch.save(best_truth_overlap, "inters/best_truth_overlap.pt")
+    # torch.save(best_prior_idx, "inters/best_prior_idx.pt")
+    # torch.save(best_prior_overlap, "inters/best_prior_overlap.pt")
+    # torch.save(truths, "inters/truths.pt")
+    # torch.save(labels, "inters/labels.pt")
+    # assert 0
 
-    best_truth_overlap.index_fill_(0, best_prior_idx, 2)  # ensure best prior
+    # best_truth_overlap.index_fill_(0, best_prior_idx, 2)  # ensure best prior
 
     # TODO refactor: index  best_prior_idx with long tensor
     # ensure every gt matches with its prior of max overlap
