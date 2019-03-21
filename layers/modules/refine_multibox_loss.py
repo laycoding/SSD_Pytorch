@@ -111,9 +111,6 @@ class RefineMultiBoxLoss(nn.Module):
                 match(self.threshold, truths, defaults, self.variance, labels,
                       loc_t, conf_t, idx)
         # TODO@laycoding: if one branch miss pos objectesss
-        if loc_t.size(1)==0 or conf_t.size(1)==0:
-            print("no pos objs")
-            return 0, 0
         loc_t = loc_t.cuda()
         conf_t = conf_t.cuda()
         # wrap targets
@@ -129,6 +126,8 @@ class RefineMultiBoxLoss(nn.Module):
         else:
             pos = conf_t > 0
         num_pos = pos.sum(1, keepdim=True)
+        if num_pos.sum()==0:
+            return 0, 0
         if debug:
             if use_arm:
                 print("odm pos num: ", str(loc_t.size(0)), str(loc_t.size(1)))
