@@ -39,7 +39,13 @@ class Detect(Function):
         """
         # loc, conf, priors = predictions
         if self.cfg.MODEL.REFINE:
-            arm_loc, arm_conf, loc, conf, priors = predictions
+            # arm_loc, arm_conf, loc, conf, priors = predictions
+            arm_loc = torch.cat([output[0] for output in predictions], 1)
+            arm_conf = torch.cat([output[1] for output in predictions], 1)
+            loc = torch.cat([output[2] for output in predictions], 1)
+            conf = torch.cat([output[3] for output in predictions], 1)
+            priors = torch.cat([output[4] for output in predictions], 0)
+
             arm_conf = F.softmax(arm_conf.view(-1, 2), 1)
             conf = F.softmax(conf.view(-1, self.num_classes), 1)
             arm_loc_data = arm_loc.data
@@ -48,7 +54,11 @@ class Detect(Function):
             no_object_index = arm_object_conf <= self.object_score
             conf.data[no_object_index.expand_as(conf.data)] = 0
         else:
-            loc, conf, priors = predictions
+            # loc, conf, priors = predictions
+            # 233
+            loc = torch.cat([output[0] for output in predictions], 1)
+            conf = torch.cat([output[1] for output in predictions], 1)
+            priors = torch.cat([output[2] for output in predictions], 0)
             conf = F.softmax(conf.view(-1, self.num_classes), 1)
         loc_data = loc.data
         conf_data = conf.data
